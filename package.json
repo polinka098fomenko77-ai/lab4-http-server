@@ -1,0 +1,25 @@
+{
+  "name": "lab4-http-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "node main.js",
+    "dev": "node --watch main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/polinka098fomenko77-ai/lab4-http-server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/polinka098fomenko77-ai/lab4-http-server/issues"
+  },
+  "homepage": "https://github.com/polinka098fomenko77-ai/lab4-http-server#readme",
+  "dependencies": {
+    "commander": "^15.0.0"
+  }
+}
