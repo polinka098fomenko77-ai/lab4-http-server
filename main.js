@@ -48,9 +48,28 @@ function toText(value) {
 }
 
 // ---------- Відповідь у форматі JSON ----------
+// Якщо задано --output, спочатку записуємо відповідь у файл,
+// і лише потім відповідаємо клієнту (щоб помилку запису можна було повідомити)
 function sendJson(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
-  res.end(JSON.stringify(data));
+  const body = JSON.stringify(data);
+
+  function respond(code, text) {
+    res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(text);
+  }
+
+  if (!options.output) {
+    respond(status, body);
+    return;
+  }
+
+  fs.writeFile(options.output, body, (err) => {
+    if (err) {
+      respond(500, JSON.stringify({ error: 'Помилка запису у вихідний файл' }));
+      return;
+    }
+    respond(status, body);
+  });
 }
 
 // ---------- Обробка записів за параметрами запиту ----------
