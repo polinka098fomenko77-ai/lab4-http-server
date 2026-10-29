@@ -21,10 +21,66 @@ if (options.port.trim() === '' || !Number.isInteger(port) || port < 1 || port > 
   process.exit(1);
 }
 
+// ---------- Допоміжні функції ----------
+
+// Число або null: порожнє, null, відсутнє й нечислове значення дають null
+function toNumber(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+// Текст або null: відсутнє, порожнє і рядок "null" вважаємо відсутнім значенням
+function toText(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  const text = String(value).trim();
+  if (text === '' || text.toLowerCase() === 'null') {
+    return null;
+  }
+  return text;
+}
+
 // ---------- Відповідь у форматі JSON ----------
 function sendJson(res, status, data) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(JSON.stringify(data));
+}
+
+// ---------- Обробка записів за параметрами запиту ----------
+function buildResult(records, showPayment, minValue) {
+  const result = [];
+
+  for (const rec of records) {
+    if (rec === null || typeof rec !== 'object') {
+      continue;
+    }
+
+    const value = toNumber(rec.Booking_Value);
+
+    // Фільтр увімкнено: запис без числової вартості не проходить
+    if (minValue !== null && !(value !== null && value > minValue)) {
+      continue;
+    }
+
+    const item = {
+      booking_id: toText(rec.Booking_ID),
+      vehicle_type: toText(rec.Vehicle_Type),
+      booking_value: value,
+    };
+    if (showPayment) {
+      item.payment_method = toText(rec.Payment_Method);
+    }
+    result.push(item);
+  }
+
+  return result;
 }
 
 // ---------- Обробник запитів ----------
@@ -34,6 +90,17 @@ function handleRequest(req, res) {
   if (url.pathname !== '/') {
     sendJson(res, 404, { error: 'Маршрут не знайдено' });
     return;
+  }
+
+  const showPayment = url.searchParams.get('payment') === 'true';
+
+  let minValue = null;
+  if (url.searchParams.has('min_value')) {
+    minValue = toNumber(url.searchParams.get('min_value'));
+    if (minValue === null) {
+      sendJson(res, 400, { error: 'Параметр min_value має бути числом' });
+      return;
+    }
   }
 
   fs.readFile(options.input, 'utf8', (err, text) => {
@@ -55,7 +122,7 @@ function handleRequest(req, res) {
       return;
     }
 
-    sendJson(res, 200, records);
+    sendJson(res, 200, buildResult(records, showPayment, minValue));
   });
 }
 
