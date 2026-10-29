@@ -1,6 +1,8 @@
+import http from 'node:http';
 import fs from 'node:fs';
 import { Command } from 'commander';
 
+// ---------- Параметри командного рядка ----------
 const program = new Command();
 
 program
@@ -19,12 +21,37 @@ if (options.port.trim() === '' || !Number.isInteger(port) || port < 1 || port > 
   process.exit(1);
 }
 
+// ---------- Відповідь у форматі JSON ----------
+function sendJson(res, status, data) {
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+  res.end(JSON.stringify(data));
+}
+
+// ---------- Обробник запитів ----------
+function handleRequest(req, res) {
+  const url = new URL(req.url, 'http://localhost');
+
+  if (url.pathname !== '/') {
+    sendJson(res, 404, { error: 'Маршрут не знайдено' });
+    return;
+  }
+
+  sendJson(res, 200, []);
+}
+
+// ---------- Запуск сервера ----------
+function startServer() {
+  const server = http.createServer(handleRequest);
+
+  server.listen(port, options.host, () => {
+    console.log(`Сервер запущено: http://${options.host}:${port}/`);
+  });
+}
+
 fs.access(options.input, fs.constants.F_OK, (err) => {
   if (err) {
     console.error('Cannot find input file');
     process.exit(1);
   }
-  console.log('2. Колбек: файл знайдено, тут буде запуск сервера');
+  startServer();
 });
-
-console.log('1. Цей рядок стоїть після fs.access, але виконається першим');
