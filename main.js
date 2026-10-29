@@ -36,7 +36,27 @@ function handleRequest(req, res) {
     return;
   }
 
-  sendJson(res, 200, []);
+  fs.readFile(options.input, 'utf8', (err, text) => {
+    if (err) {
+      sendJson(res, 500, { error: 'Не вдалося прочитати файл даних' });
+      return;
+    }
+
+    let records;
+    try {
+      records = JSON.parse(text);
+    } catch (parseError) {
+      sendJson(res, 500, { error: 'Файл даних пошкоджено: некоректний JSON' });
+      return;
+    }
+
+    if (!Array.isArray(records)) {
+      sendJson(res, 500, { error: 'Файл даних має містити JSON-масив' });
+      return;
+    }
+
+    sendJson(res, 200, records);
+  });
 }
 
 // ---------- Запуск сервера ----------
