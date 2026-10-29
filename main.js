@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { Command } from 'commander';
 
 const program = new Command();
@@ -18,4 +19,12 @@ if (options.port.trim() === '' || !Number.isInteger(port) || port < 1 || port > 
   process.exit(1);
 }
 
-console.log(options);
+fs.access(options.input, fs.constants.F_OK, (err) => {
+  if (err) {
+    console.error('Cannot find input file');
+    process.exit(1);
+  }
+  console.log('2. Колбек: файл знайдено, тут буде запуск сервера');
+});
+
+console.log('1. Цей рядок стоїть після fs.access, але виконається першим');
