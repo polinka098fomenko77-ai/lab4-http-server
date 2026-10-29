@@ -54,6 +54,9 @@ function sendJson(res, status, data) {
   const body = JSON.stringify(data);
 
   function respond(code, text) {
+    if (res.headersSent) {
+      return;
+    }
     res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(text);
   }
@@ -141,13 +144,35 @@ function handleRequest(req, res) {
       return;
     }
 
-    sendJson(res, 200, buildResult(records, showPayment, minValue));
+    // Колбек виконується пізніше, тому зовнішній try/catch сюди не дістає
+    let result;
+    try {
+      result = buildResult(records, showPayment, minValue);
+    } catch (buildError) {
+      console.error('Помилка обробки даних:', buildError);
+      sendJson(res, 500, { error: 'Помилка обробки даних' });
+      return;
+    }
+
+    sendJson(res, 200, result);
   });
 }
 
 // ---------- Запуск сервера ----------
 function startServer() {
-  const server = http.createServer(handleRequest);
+  const server = http.createServer((req, res) => {
+    try {
+      handleRequest(req, res);
+    } catch (e) {
+      console.error('Необроблена помилка в обробнику запиту:', e);
+      sendJson(res, 500, { error: 'Внутрішня помилка сервера' });
+    }
+  });
+
+  server.on('error', (e) => {
+    console.error(`Помилка сервера: ${e.message}`);
+    process.exit(1);
+  });
 
   server.listen(port, options.host, () => {
     console.log(`Сервер запущено: http://${options.host}:${port}/`);
